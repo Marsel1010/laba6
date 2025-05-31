@@ -9,29 +9,23 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    
     strategy:
       matrix:
         config: [Debug, Release]
-        include:
-          - generator: "Visual Studio 17 2022"
-            platform: "x64"
-            toolset: "v143"  # Правильный toolset для VS 2022
-            vs_version: "17.0"
-            
+        
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ms-setup-msbuild@v1
         with:
-          vs-version: ${{ matrix.vs_version }}
-          toolset: ${{ matrix.toolset }}
-          arch: ${{ matrix.platform }}
+          vs-version: '17.0'  # VS 2022
 
       - name: Configure CMake
         run: |
-          cmake -B build -S . -G "${{ matrix.generator }}" -A ${{ matrix.platform }} -T ${{ matrix.toolset }}
+          cmake -B build -S . -G "Visual Studio 17 2022" -A x64
           
       - name: Build
-        run: cmake --build build --config ${{ matrix.config }}
+        run: cmake --build build --config ${{ matrix.config }} -- /m

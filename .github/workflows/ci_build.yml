@@ -15,17 +15,18 @@ jobs:
         config: [Debug, Release]
         
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup MSVC
-        uses: ms-setup-msbuild@v1
-        with:
-          vs-version: '17.0'  # VS 2022
+      - name: Setup Visual Studio
+        uses: microsoft/setup-msbuild@v1.3
 
       - name: Configure CMake
+        shell: cmd
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" -A x64
           
       - name: Build
-        run: cmake --build build --config ${{ matrix.config }} -- /m
+        shell: cmd
+        run: |
+          cmake --build build --config ${{ matrix.config }} -- /m

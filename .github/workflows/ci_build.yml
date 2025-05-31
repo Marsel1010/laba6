@@ -16,28 +16,29 @@ jobs:
   # .github/workflows/ci_build.yml
   # ... (остальная часть файла) ...
 
+  # .github/workflows/ci_build.yml
+  # ... (остальная часть файла) ...
+
   # Задание для сборки на Windows
   build-windows:
-    runs-on: windows-latest # Используем последний образ Windows (Visual Studio)
+    runs-on: windows-latest
     strategy:
       matrix:
-        # Тестируем с разными генераторами Visual Studio и конфигурациями сборки
         generator: ["Visual Studio 16 2019", "Visual Studio 17 2022"]
         config: [Debug, Release]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- НОВЫЙ ШАГ: Установка окружения Visual Studio ---
+      # --- ИСПРАВЛЕННЫЙ ШАГ: Установка окружения Visual Studio ---
       - name: Setup Visual Studio Environment
-        uses: microsoft/setup-msbuild@v1.1 # Используем официальный action от Microsoft
+        uses: microsoft/setup-msbuild@v1.1
         with:
-          # В зависимости от выбранного генератора, указываем версию MSBuild
-          # 16.0 для Visual Studio 2019, 17.0 для Visual Studio 2022
-          msbuild-version: |
+          # ИСПРАВЛЕНО: msbuild-version на vs-version
+          vs-version: |
             ${{ matrix.generator == 'Visual Studio 16 2019' && '16.0' || '' }}
             ${{ matrix.generator == 'Visual Studio 17 2022' && '17.0' || '' }}
-      # --- КОНЕЦ НОВОГО ШАГА ---
+      # --- КОНЕЦ ИСПРАВЛЕННОГО ШАГА ---
 
       # Конфигурируем CMake для Visual Studio 2019
       - name: Configure CMake (Visual Studio 2019)
@@ -49,5 +50,5 @@ jobs:
         if: ${{ matrix.generator == 'Visual Studio 17 2022' }}
         run: cmake -B build -S . -G "Visual Studio 17 2022"
 
-      - name: Build with Visual Studio (${{ matrix.config }}) # Запуск сборки для Windows
+      - name: Build with Visual Studio (${{ matrix.config }})
         run: cmake --build build --config ${{ matrix.config }}

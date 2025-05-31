@@ -1,49 +1,5 @@
-# .github/workflows/ci_build.yml
-
-name: CMake CI Build
-
-# Указываем, когда запускать этот рабочий процесс
-on:
-  push:       # При каждом push в репозиторий
-    branches:
-      - main # Или master, если у вас так называется основная ветка
-  pull_request: # При создании или обновлении Pull Request
-    branches:
-      - main
-
-jobs:
-  # Задание для сборки на Linux
-  build-linux:
-    runs-on: ubuntu-latest # Используем последний образ Ubuntu
-    strategy:
-      matrix:
-        compiler: [gcc, clang] # Тестируем с GCC и Clang
-    steps:
-      - name: Checkout repository # Шаг для клонирования вашего репозитория
-        uses: actions/checkout@v4
-
-      - name: Install CMake # Устанавливаем CMake, если он не установлен
-        run: sudo apt-get update && sudo apt-get install -y cmake
-
-      # Настраиваем переменные окружения для GCC
-      - name: Set up C++ compiler environment (GCC)
-        if: ${{ matrix.compiler == 'gcc' }} # Условие: если компилятор - gcc
-        run: |
-          echo "CXX=g++" >> $GITHUB_ENV
-          echo "CC=gcc" >> $GITHUB_ENV
-
-      # Настраиваем переменные окружения для Clang
-      - name: Set up C++ compiler environment (Clang)
-        if: ${{ matrix.compiler == 'clang' }} # Условие: если компилятор - clang
-        run: |
-          echo "CXX=clang++" >> $GITHUB_ENV
-          echo "CC=clang" >> $GITHUB_ENV
-
-      - name: Configure CMake # Запуск CMake для генерации файлов сборки
-        run: cmake -B build -S .
-
-      - name: Build with ${{ matrix.compiler }} # Запуск сборки проекта
-        run: cmake --build build
+  # .github/workflows/ci_build.yml
+  # ... (остальная часть файла) ...
 
   # Задание для сборки на Windows
   build-windows:
@@ -57,16 +13,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # --- НОВЫЙ ШАГ: Установка окружения Visual Studio ---
+      - name: Setup Visual Studio Environment
+        uses: microsoft/setup-msbuild@v1.1 # Используем официальный action от Microsoft
+        with:
+          # В зависимости от выбранного генератора, указываем версию MSBuild
+          # 16.0 для Visual Studio 2019, 17.0 для Visual Studio 2022
+          msbuild-version: |
+            ${{ matrix.generator == 'Visual Studio 16 2019' && '16.0' || '' }}
+            ${{ matrix.generator == 'Visual Studio 17 2022' && '17.0' || '' }}
+      # --- КОНЕЦ НОВОГО ШАГА ---
+
       # Конфигурируем CMake для Visual Studio 2019
       - name: Configure CMake (Visual Studio 2019)
-        if: ${{ matrix.generator == 'Visual Studio 16 2019' }} # Условие: если генератор - VS 2019
+        if: ${{ matrix.generator == 'Visual Studio 16 2019' }}
         run: cmake -B build -S . -G "Visual Studio 16 2019"
 
       # Конфигурируем CMake для Visual Studio 2022
       - name: Configure CMake (Visual Studio 2022)
-        if: ${{ matrix.generator == 'Visual Studio 17 2022' }} # Условие: если генератор - VS 2022
+        if: ${{ matrix.generator == 'Visual Studio 17 2022' }}
         run: cmake -B build -S . -G "Visual Studio 17 2022"
 
       - name: Build with Visual Studio (${{ matrix.config }}) # Запуск сборки для Windows
         run: cmake --build build --config ${{ matrix.config }}
-

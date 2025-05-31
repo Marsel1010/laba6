@@ -11,18 +11,13 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        generator: ["Visual Studio 17 2022"]  # Рекомендуется использовать только 2022
         config: [Debug, Release]
         include:
           - generator: "Visual Studio 17 2022"
             platform: "x64"
+            toolset: "v143"  # Правильный toolset для VS 2022
             vs_version: "17.0"
-          # Если очень нужно 2019:
-          - generator: "Visual Studio 16 2019"
-            platform: "x64"
-            vs_version: "16.0"
-            runs-on: windows-2019  # Требуется специальный runner
-
+            
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,13 +25,13 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          toolset: ${{ contains(matrix.generator, '2019') && '14.29' || '14.38' }}
+          vs-version: ${{ matrix.vs_version }}
+          toolset: ${{ matrix.toolset }}
           arch: ${{ matrix.platform }}
-          sdk: "10.0.20348.0"  # Укажите нужную версию Windows SDK
 
       - name: Configure CMake
         run: |
-          cmake -B build -S . -G "${{ matrix.generator }}" -A ${{ matrix.platform }}
+          cmake -B build -S . -G "${{ matrix.generator }}" -A ${{ matrix.platform }} -T ${{ matrix.toolset }}
           
       - name: Build
         run: cmake --build build --config ${{ matrix.config }}

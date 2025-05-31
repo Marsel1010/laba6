@@ -1,3 +1,18 @@
+# .github/workflows/ci_build.yml
+
+name: CMake CI Build
+
+# Указываем, когда запускать этот рабочий процесс
+on:
+  push:       # При каждом push в репозиторий
+    branches:
+      - main # Убедитесь, что это имя вашей основной ветки (main или master)
+  pull_request: # При создании или обновлении Pull Request
+    branches:
+      - main # Убедитесь, что это имя вашей основной ветки (main или master)
+
+jobs:
+  # ... остальной код вашего рабочего процесса ...
   # .github/workflows/ci_build.yml
   # ... (остальная часть файла) ...
 

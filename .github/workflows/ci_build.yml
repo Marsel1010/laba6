@@ -1,0 +1,57 @@
+# .github/workflows/ci_build.yml
+
+name: CMake CI Build
+
+# Указываем, когда запускать этот рабочий процесс
+on:
+  push:       # При каждом push в репозиторий
+    branches:
+      - main # Или master, если у вас так называется основная ветка
+  pull_request: # При создании или обновлении Pull Request
+    branches:
+      - main
+
+jobs:
+  # Задание для сборки на Linux
+  build-linux:
+    runs-on: ubuntu-latest # Используем последний образ Ubuntu
+    strategy:
+      matrix:
+        compiler: [gcc, clang] # Тестируем с GCC и Clang
+    steps:
+      - name: Checkout repository # Шаг для клонирования вашего репозитория
+        uses: actions/checkout@v4  - name: Install CMake # Устанавливаем CMake, если он не установлен
+    run: sudo apt-get update &amp;&amp; sudo apt-get install -y cmake
+
+  - name: Set up C++ compiler environment # Настраиваем переменные окружения для выбранного компилятора
+    run: |
+      if [ "${{ matrix.compiler }}" == "gcc" ]; then
+        echo "CXX=g++" &gt;&gt; $GITHUB_ENV
+        echo "CC=gcc" &gt;&gt; $GITHUB_ENV
+      else
+        echo "CXX=clang++" &gt;&gt; $GITHUB_ENV
+        echo "CC=clang" &gt;&gt; $GITHUB_ENV
+      fi
+    shell: bash
+
+  - name: Configure CMake # Запуск CMake для генерации файлов сборки
+    # -B build -S . означает, что сборка будет в подкаталоге 'build', а исходники в текущем '.'
+    run: cmake -B build -S .
+
+  - name: Build with ${{ matrix.compiler }} # Запуск сборки проекта
+    run: cmake --build build
+  # Задание для сборки на Windows (опционально, но хорошая практика)
+  build-windows:
+    runs-on: windows-latest # Используем последний образ Windows (Visual Studio)
+    strategy:
+      matrix:
+        # Тестируем с разными генераторами Visual Studio и конфигурациями сборки
+        generator: ["Visual Studio 16 2019", "Visual Studio 17 2022"]
+        config: [Debug, Release]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4  - name: Configure CMake # Запуск CMake с указанным генератором для Visual Studio
+    run: cmake -B build -S . -G "${{ matrix.generator }}"
+
+  - name: Build with Visual Studio (${{ matrix.config }}) # Запуск сборки для Windows
+    run: cmake --build build --config ${{ matrix.config }}

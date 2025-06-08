@@ -64,15 +64,16 @@ jobs:
 
       - name: Setup CMake (Linux/macOS)
         if: ${{ matrix.config.os != 'windows-latest' }}
-        run: |
-          sudo apt-get install -y cmake  # Ubuntu
-          # или brew install cmake — если нужно
+        uses: kitware/setup-cmake@v1
+        with:
+          cmake-version: latest
 
       - name: Setup CMake (Windows)
         if: ${{ matrix.config.os == 'windows-latest' }}
-        uses: jwlawrence/cmake-installer@v1
+        uses: kitware/setup-cmake@v1
         with:
-          version: latest
+          cmake-version: latest
+
 
       - name: Install dependencies (macOS)
         if: ${{ matrix.config.os == 'macos-latest' }}

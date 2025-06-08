@@ -1,65 +1,115 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 720e04f1f9b4691bdc8469a10af70a8bd070fe06
-name: CMake CI
+name: CMake CI and Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags:
+      - 'v*' # Запускать при пуше тега вроде v1.0.0
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  linux-gcc:
-    runs-on: ubuntu-22.04
+  build-linux-gcc:
+    runs-on: ubuntu-latest
+    name: Linux GCC Build
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install GCC
-      run: sudo apt-get update && sudo apt-get install -y g++ cmake make
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ cmake make
+      - name: Configure CMake
+        run: cmake -B build -S .
+      - name: Build
+        run: cmake --build build --parallel
 
-    - name: Configure
-      run: cmake -B build -S . -DCMAKE_CXX_COMPILER=g++
-
-    - name: Build
-      run: cmake --build build --parallel
-
-  linux-clang:
-    runs-on: ubuntu-22.04
+  build-linux-clang:
+    runs-on: ubuntu-latest
+    name: Linux Clang Build
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Clang
-      run: sudo apt-get update && sudo apt-get install -y clang cmake make
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang cmake make
+      - name: Configure CMake
+        run: cmake -B build -S .
+      - name: Build
+        run: cmake --build build --parallel
 
-    - name: Configure
-      run: cmake -B build -S . -DCMAKE_CXX_COMPILER=clang++
-
-    - name: Build
-      run: cmake --build build --parallel
-
-  windows-msvc:
+  build-windows-msvc:
     runs-on: windows-latest
     strategy:
       matrix:
         config: [Debug, Release]
+    name: Windows MSVC Build
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Configure
-      run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64
+      - uses: actions/checkout@v4
+      - name: Configure CMake
+        run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config }} -- /m
 
-    - name: Build
-      run: cmake --build build --config ${{ matrix.config }} -- /m
-
-  macos-clang:
+  build-macos-clang:
     runs-on: macos-latest
+    name: macOS Clang Build
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Configure
-      run: cmake -B build -S . -DCMAKE_CXX_COMPILER=clang++
+      - uses: actions/checkout@v4
+      - name: Configure CMake
+        run: cmake -B build -S .
+      - name: Build
+        run: cmake --build build --parallel
 
-    - name: Build
-      run: cmake --build build --parallel
+  release-package:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs:
+      - build-linux-gcc
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@v4.8.0
+
+      - name: Configure CMake
+        run: |
+          mkdir build && cd build
+          cmake ..
+
+      - name: Build project
+        run: |
+          cd build
+          make
+
+      - name: Run CPack to generate packages
+        run: |
+          cd build
+          cpack
+
+      - name: Upload artifacts (packages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: solver-release-packages
+          path: |
+            build/*.tar.gz
+            build/*.zip
+            build/*.deb
+            build/*.rpm
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/solver-1.0.0-Linux.deb
+          asset_name: solver-1.0.0-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package

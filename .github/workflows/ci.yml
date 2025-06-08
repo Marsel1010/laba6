@@ -59,23 +59,20 @@ jobs:
   release-package:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    needs:
-      - build-linux-gcc
+    needs: build-linux-gcc
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup CMake
-        uses: cmake-actions/cmake@v1
+      - name: Setup CMake (Linux)
+        if: ${{ matrix.config.os == 'ubuntu-latest' }}
+        run: |
+          echo "Using system CMake $(cmake --version)"
 
-      - name: Configure CMake
+      - name: Configure & Build
         run: |
           mkdir build && cd build
           cmake ..
-
-      - name: Build project
-        run: |
-          cd build
           make
 
       - name: Run CPack to generate packages
@@ -83,15 +80,11 @@ jobs:
           cd build
           cpack
 
-      - name: Upload artifacts (packages)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: solver-release-packages
-          path: |
-            build/*.tar.gz
-            build/*.zip
-            build/*.deb
-            build/*.rpm
+          name: release
+          path: build/*
 
       - name: Create GitHub Release
         id: create_release
@@ -104,12 +97,12 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/solver-*.deb
-          asset_name: solver-debian.deb
+          asset_name: solver.deb
           asset_content_type: application/vnd.debian.binary-package

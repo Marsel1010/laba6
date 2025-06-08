@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 720e04f1f9b4691bdc8469a10af70a8bd070fe06
 name: CMake CI
 
 on:

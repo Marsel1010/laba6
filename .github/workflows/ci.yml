@@ -113,3 +113,64 @@ jobs:
           asset_path: build/solver-1.0.0-Linux.deb
           asset_name: solver-1.0.0-Linux.deb
           asset_content_type: application/vnd.debian.binary-package
+release-msi:
+  if: startsWith(github.ref, 'refs/tags/v')
+  runs-on: windows-latest
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: lukka/get-cmake@v4.8.0
+
+    - name: Configure
+      run: |
+        mkdir build && cd build
+        cmake ..
+
+    - name: Build & Package with CPack
+      run: |
+        cd build
+        cpack
+
+    - name: Upload MSI
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build/solver-*.msi
+        asset_name: solver-installer.msi
+        asset_content_type: application/octet-stream
+release-dmg:
+  if: startsWith(github.ref, 'refs/tags/v')
+  runs-on: macos-latest
+  steps:
+    - name: Install create-dmg
+      run: brew install --cask osxfuse && brew install create-dmg
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: lukka/get-cmake@v4.8.0
+
+    - name: Configure
+      run: |
+        mkdir build && cd build
+        cmake ..
+
+    - name: Build & Package with CPack
+      run: |
+        cd build
+        cpack
+
+    - name: Upload DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build/solver-*.dmg
+        asset_name: solver-installer.dmg
+        asset_content_type: application/octet-stream

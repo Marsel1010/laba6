@@ -1,14 +1,14 @@
+cmake_minimum_required(VERSION 3.10)
+project(Solver)
 
-# lab3-4/solver/CMakeLists.txt
-
+# Создаем исполняемый файл 'solver' из main.cpp
 add_executable(solver main.cpp)
 
-# Линкуемся с правильными целями: formatter, а не formatter_lib
-target_link_libraries(solver PRIVATE formatter_ex formatter solver_lib)
+# Линкуем 'solver' с библиотеками
+target_link_libraries(solver PRIVATE formatter_ex solver_lib)
 
 # Установка исполняемого файла в /bin
 install(TARGETS solver DESTINATION bin)
 
-# Если хочешь, можно установить и README или другие файлы:
+# Опционально: установка README
 install(FILES README.md DESTINATION . OPTIONAL)
-kk

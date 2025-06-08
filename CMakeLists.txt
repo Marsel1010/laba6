@@ -12,7 +12,15 @@ add_subdirectory(formatter_ex_lib)
 add_subdirectory(hello_world)
 add_subdirectory(solver_lib)
 add_subdirectory(solver)
-set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackConfig.cmake")
-# Установка целей для CPack
-include(CPack)
 
+# Указываем пути к заголовкам
+target_include_directories(hello_world PRIVATE ${PROJECT_SOURCE_DIR}/formatter_ex_lib)
+target_include_directories(solver PRIVATE ${PROJECT_SOURCE_DIR}/formatter_ex_lib)
+target_include_directories(solver PRIVATE ${PROJECT_SOURCE_DIR}/solver_lib)
+
+# Чтобы formatter_ex "знала", где её заголовки:
+target_include_directories(formatter_ex PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/formatter_ex_lib>)
+
+# Настройка CPack
+set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackConfig.cmake")
+include(CPack)

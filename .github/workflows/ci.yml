@@ -1,66 +1,63 @@
-name: CMake CI and Release
+name: Build & Package Solver
 
 on:
   push:
     branches: [main]
     tags:
-      - 'v*' # Запускать при пуше тега вроде v1.0.0
+      - 'v*' # Например, v1.0.0
   pull_request:
     branches: [main]
 
 jobs:
+  # Базовая сборка на разных платформах
   build-linux-gcc:
     runs-on: ubuntu-latest
-    name: Linux GCC Build
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install GCC
         run: sudo apt-get update && sudo apt-get install -y g++ cmake make
-      - name: Configure CMake
-        run: cmake -B build -S .
-      - name: Build
-        run: cmake --build build --parallel
-
-  build-linux-clang:
-    runs-on: ubuntu-latest
-    name: Linux Clang Build
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang cmake make
-      - name: Configure CMake
+      - name: Configure
         run: cmake -B build -S .
       - name: Build
         run: cmake --build build --parallel
 
   build-windows-msvc:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        config: [Debug, Release]
-    name: Windows MSVC Build
     steps:
       - uses: actions/checkout@v4
-      - name: Configure CMake
+      - name: Configure
         run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64
       - name: Build
-        run: cmake --build build --config ${{ matrix.config }} -- /m
+        run: cmake --build build --config Release -- /m
 
   build-macos-clang:
     runs-on: macos-latest
-    name: macOS Clang Build
     steps:
       - uses: actions/checkout@v4
-      - name: Configure CMake
+      - name: Configure
         run: cmake -B build -S .
       - name: Build
         run: cmake --build build --parallel
 
-  release-package:
+  # Сборка пакетов при пуше тега
+  release-all:
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
     needs:
       - build-linux-gcc
+      - build-windows-msvc
+      - build-macos-clang
+    strategy:
+      matrix:
+        config:
+          - os: ubuntu-latest
+            generators: "TGZ;ZIP;DEB;RPM"
+          - os: windows-latest
+            generators: "WIX"
+            installer: msi
+          - os: macos-latest
+            generators: "DMG"
+            installer: dmg
+    runs-on: ${{ matrix.config.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,33 +65,31 @@ jobs:
       - name: Setup CMake
         uses: lukka/get-cmake@v4.8.0
 
-      - name: Configure CMake
+      - name: Install dependencies (macOS)
+        if: ${{ matrix.config.os == 'macos-latest' }}
         run: |
-          mkdir build && cd build
-          cmake ..
+          brew install --cask osxfuse
+          brew install create-dmg
 
-      - name: Build project
+      - name: Configure with CPack
         run: |
-          cd build
-          make
+          mkdir -p build && cd build
+          cmake -DCPACK_GENERATOR=${{ matrix.config.generators }} ..
 
-      - name: Run CPack to generate packages
+      - name: Build packages
         run: |
-          cd build
-          cpack
+        cd build
+        cpack
 
-      - name: Upload artifacts (packages)
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: solver-release-packages
-          path: |
-            build/*.tar.gz
-            build/*.zip
-            build/*.deb
-            build/*.rpm
+          name: release-${{ matrix.config.os }}
+          path: build/*
 
       - name: Create GitHub Release
         id: create_release
+        if: ${{ github.run_number == 1 }}
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -104,73 +99,13 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload Release Asset
+        if: ${{ matrix.config.installer }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/solver-1.0.0-Linux.deb
-          asset_name: solver-1.0.0-Linux.deb
-          asset_content_type: application/vnd.debian.binary-package
-release-msi:
-  if: startsWith(github.ref, 'refs/tags/v')
-  runs-on: windows-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup CMake
-      uses: lukka/get-cmake@v4.8.0
-
-    - name: Configure
-      run: |
-        mkdir build && cd build
-        cmake ..
-
-    - name: Build & Package with CPack
-      run: |
-        cd build
-        cpack
-
-    - name: Upload MSI
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build/solver-*.msi
-        asset_name: solver-installer.msi
-        asset_content_type: application/octet-stream
-release-dmg:
-  if: startsWith(github.ref, 'refs/tags/v')
-  runs-on: macos-latest
-  steps:
-    - name: Install create-dmg
-      run: brew install --cask osxfuse && brew install create-dmg
-
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup CMake
-      uses: lukka/get-cmake@v4.8.0
-
-    - name: Configure
-      run: |
-        mkdir build && cd build
-        cmake ..
-
-    - name: Build & Package with CPack
-      run: |
-        cd build
-        cpack
-
-    - name: Upload DMG
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build/solver-*.dmg
-        asset_name: solver-installer.dmg
-        asset_content_type: application/octet-stream
+          asset_path: build/solver-*.${{ matrix.config.installer }}
+          asset_name: solver-${{ matrix.config.os }}.${{ matrix.config.installer }}
+          asset_content_type: application/octet-stream

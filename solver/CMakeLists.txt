@@ -10,5 +10,5 @@ target_link_libraries(solver PRIVATE formatter_ex solver_lib)
 # Установка исполняемого файла в /bin
 install(TARGETS solver DESTINATION bin)
 
-# Опционально: установка README
+# Опционально: установка README (убедитесь, что README.md существует в этой папке, если нет, удалите или создайте его)
 install(FILES README.md DESTINATION . OPTIONAL)

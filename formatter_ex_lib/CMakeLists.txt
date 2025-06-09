@@ -13,7 +13,11 @@ target_include_directories(formatter_ex PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-# Если хотите явно указать, какие заголовочные файлы предоставляются:
+# Это не строго обязательно, но полезно для современных IDE
 set_target_properties(formatter_ex PROPERTIES
     PUBLIC_HEADER "formatter_ex.h"
 )
+
+# ДОБАВЬТЕ ЭТИ СТРОКИ:
+install(TARGETS formatter_ex DESTINATION lib)
+install(FILES formatter_ex.h DESTINATION include)

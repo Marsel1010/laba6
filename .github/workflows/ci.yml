@@ -28,7 +28,7 @@ jobs:
         timeout-minutes: 5
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y --no-progress
-     
+
       - name: Install CMake (macOS)
         if: matrix.os == 'macos-latest'
         run: |
@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir build && cd build
           cmake ..
-
+          
       - name: Configure CMake (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -50,7 +50,7 @@ jobs:
       - name: Build solver
         run: |
           cd build
-          cmake --build . --target solver --config Release 
+          cmake --build . --target solver --config Release
 
       - name: Create source archives (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -88,7 +88,8 @@ jobs:
             build/*.rpm
             build/*.msi
             build/*.dmg
-    create-github-release:
+
+  create-github-release:
     needs: build-release
     runs-on: ubuntu-latest
     permissions:

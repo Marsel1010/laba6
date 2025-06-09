@@ -88,3 +88,87 @@ jobs:
             build/*.rpm
             build/*.msi
             build/*.dmg
+    create-github-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts/
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Source Tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-ubuntu-latest/solver-src-${{ github.ref_name }}.tar.gz
+          asset_name: solver-src-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Source Zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-ubuntu-latest/solver-src-${{ github.ref_name }}.zip
+          asset_name: solver-src-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Linux DEB
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-ubuntu-latest/build/solver-*.deb
+          asset_name: solver.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload Linux RPM
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-ubuntu-latest/build/solver-*.rpm
+          asset_name: solver.rpm
+          asset_content_type: application/x-rpm
+
+      - name: Upload Windows MSI
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-windows-latest/build/solver-*.msi
+          asset_name: solver.msi
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS DMG
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/release-artifacts-macos-latest/build/solver-*.dmg
+          asset_name: solver.dmg
+          asset_content_type: application/octet-stream

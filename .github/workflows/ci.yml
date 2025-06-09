@@ -69,7 +69,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           cd build
-	  Remove-Item -Recurse -Force _CPack_Packages
+          Remove-Item -Recurse -Force _CPack_Packages
           cpack -G WIX --verbose   # Запуск с выводом логов для отладки
       - name: Package for macOS (.dmg)
         if: matrix.os == 'macos-latest'

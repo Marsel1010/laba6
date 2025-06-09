@@ -69,8 +69,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           cd build
-          cpack -G WIX
-
+          rm -rf _CPack_Packages  # Очистка остаточных данных от прошлых сборок
+          cpack -G WIX --verbose   # Запуск с выводом логов для отладки
       - name: Package for macOS (.dmg)
         if: matrix.os == 'macos-latest'
         run: |
